@@ -1,0 +1,31 @@
+{
+  "name": "lichen-ritam",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A personal photo journal of returning to training.",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 127.0.0.1"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "dependencies": {
+    "@fontsource-variable/roboto": "^5.3.0",
+    "@fontsource-variable/roboto-condensed": "^5.3.0",
+    "@fontsource-variable/sofia-sans-condensed": "^5.3.0",
+    "@supabase/supabase-js": "^2.117.1",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.1"
+  }
+}
