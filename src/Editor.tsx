@@ -13,6 +13,7 @@ import { analyticsCode } from "./analytics";
 import { Notice, Photo } from "./components";
 import { ExtraPhotoEditor } from "./Gallery";
 import type { ExtraPhotoDraft } from "./Gallery";
+import { navigate, routeHref } from "./navigation";
 
 export type PhotoChange = { blob: Blob; preview: string } | null;
 function PhotoField({
@@ -150,10 +151,10 @@ export function AdminList({
   return (
     <main id="main" tabIndex={-1} className="workspace-page">
       <div className="workspace-actions">
-        <a className="button" href="#/admin/new">
+        <a className="button" href={routeHref("/admin/new")}>
           Нов запис <span aria-hidden="true">+</span>
         </a>
-        <a className="button secondary" href="#/settings">
+        <a className="button secondary" href={routeHref("/settings")}>
           Настройки
         </a>
         {analyticsCode && (
@@ -185,7 +186,7 @@ export function AdminList({
         <ul className="entry-list">
           {[...data.entries].reverse().map((e) => (
             <li key={e.id}>
-              <a href={`#/admin/${e.id}`}>
+              <a href={routeHref(`/admin/${e.id}`)}>
                 <time dateTime={e.date}>
                   {formatDate(e.date)}
                   <small>{e.date.slice(0, 4)}</small>
@@ -310,7 +311,7 @@ export function EntryEditor({
           ? "Денят е публикуван."
           : "Черновата е запазена.",
       );
-      if (!initial) location.hash = `/admin/${final.id}`;
+      if (!initial) navigate(`/admin/${final.id}`);
     } catch {
       await discardUploads(uploaded);
       setError(
@@ -333,7 +334,7 @@ export function EntryEditor({
     try {
       await remove(entry.id);
       markDirty(false);
-      location.hash = "/admin";
+      navigate("/admin");
     } catch {
       setError("Записът не се изтри. Опитай отново.");
     } finally {
@@ -343,7 +344,7 @@ export function EntryEditor({
   return (
     <main id="main" tabIndex={-1} className="editor-page">
       <div className="editor-topline">
-        <a href="#/admin">← Всички записи</a>
+        <a href={routeHref("/admin")}>← Всички записи</a>
         <span>
           {dirty
             ? "Незапазени промени"
@@ -561,7 +562,7 @@ export function EntryEditor({
             </button>
           </div>
           {initial?.status === "published" && (
-            <a href={`#/journal/${initial.date}`}>Виж в дневника ↗</a>
+            <a href={routeHref(`/journal/${initial.date}`)}>Виж в дневника ↗</a>
           )}
         </div>
         {initial && (
@@ -635,7 +636,7 @@ export function SettingsEditor({
   }
   return (
     <main id="main" tabIndex={-1} className="editor-page settings-page">
-      <a href="#/admin">← Към редактора</a>
+      <a href={routeHref("/admin")}>← Към редактора</a>
       <form onSubmit={submit}>
         <fieldset disabled={busy}>
           <div>

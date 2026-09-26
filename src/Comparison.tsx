@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Entry, JournalData } from "./model";
 import { dayNumber, formatDate } from "./model";
 import { Photo } from "./components";
+import { routeHref } from "./navigation";
 
 export default function Comparison({
   data,
@@ -153,7 +154,7 @@ export default function Comparison({
         </div>
       )}
       {entry && (
-        <a className="comparison-read" href={`#/journal/${entry.date}`}>
+        <a className="comparison-read" href={routeHref(`/journal/${entry.date}`)}>
           Прочети историята от този ден →
         </a>
       )}

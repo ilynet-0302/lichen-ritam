@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { dayNumber, formatDate } from "./model";
 import type { Entry, JournalData } from "./model";
 import { DayGallery } from "./Gallery";
+import { routeHref } from "./navigation";
 
 export function Icon({ food = false }: { food?: boolean }) {
   return (
@@ -92,7 +93,7 @@ export function Header({
   return (
     <header className={`masthead${available ? "" : " masthead-unavailable"}`}>
       <div className="topbar">
-        <a className="wordmark" href="#/">
+        <a className="wordmark" href={routeHref("/")}>
           Личен ритъм
         </a>
         <p className="motto">
@@ -116,7 +117,7 @@ export function Header({
                   className={active ? "active" : ""}
                   aria-current={active ? "page" : undefined}
                   key={path}
-                  href={`#${path}`}
+                  href={routeHref(`${path}`)}
                 >
                   {label}
                 </a>
@@ -200,7 +201,7 @@ export function Journal({
             {visible.map((e) => (
               <a
                 key={e.id}
-                href={`#/journal/${e.date}`}
+                href={routeHref(`/journal/${e.date}`)}
                 title={`${formatDate(e.date)} — ${e.title}`}
                 aria-label={`Ден ${dayNumber(e.date, data.settings.start_date)}, ${formatDate(e.date)}`}
                 className={e.id === entry.id ? "selected" : ""}
@@ -213,7 +214,7 @@ export function Journal({
               </a>
             ))}
           </nav>
-          <a className="compare-link" href={`#/compare?date=${entry.date}`}>
+          <a className="compare-link" href={routeHref(`/compare?date=${entry.date}`)}>
             Сравни с началото <span aria-hidden="true">→</span>
           </a>
         </div>
@@ -251,7 +252,7 @@ export function Journal({
       </article>
       <nav className="entry-pagination" aria-label="Предишен и следващ запис">
         {index > 0 ? (
-          <a href={`#/journal/${entries[index - 1].date}`}>
+          <a href={routeHref(`/journal/${entries[index - 1].date}`)}>
             ← {formatDate(entries[index - 1].date)}
           </a>
         ) : (
@@ -264,7 +265,7 @@ export function Journal({
           <ol>
             {entries.map((e) => (
               <li key={e.id}>
-                <a href={`#/journal/${e.date}`}>
+                <a href={routeHref(`/journal/${e.date}`)}>
                   <time>
                     {formatDate(e.date)} {e.date.slice(0, 4)}
                   </time>
@@ -275,7 +276,7 @@ export function Journal({
           </ol>
         </details>
         {index < entries.length - 1 ? (
-          <a href={`#/journal/${entries[index + 1].date}`}>
+          <a href={routeHref(`/journal/${entries[index + 1].date}`)}>
             {formatDate(entries[index + 1].date)} →
           </a>
         ) : (

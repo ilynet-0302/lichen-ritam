@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { Header, Journal, Notice, Photo } from "./components";
 import { AdminList, EntryEditor, Login, SettingsEditor } from "./Editor";
 import Comparison from "./Comparison";
@@ -6,10 +6,11 @@ import { supabase } from "./cloud";
 import { analyticsCode, useAnalytics } from "./analytics";
 import { publishedEntries, formatDate } from "./model";
 import { useJournal, usePhotoUrls } from "./useJournal";
+import { currentRoute, routeHref } from "./navigation";
 
 export default function App() {
   const journal = useJournal();
-  const [route, setRoute] = useState(location.hash.slice(1) || "/");
+  const route = currentRoute();
   const dirty = useRef(false);
   const markDirty = useCallback((value: boolean) => {
     dirty.current = value;
@@ -36,23 +37,20 @@ export default function App() {
   );
 
   useEffect(() => {
-    let previous = location.hash.slice(1) || "/";
-    const change = () => {
-      const next = location.hash.slice(1) || "/";
+    const followLink = (e: MouseEvent) => {
       if (
-        dirty.current &&
-        !window.confirm("Има незапазени промени. Да напусна без запазване?")
-      ) {
-        history.replaceState(null, "", `#${previous}`);
-        return;
-      }
-      dirty.current = false;
-      previous = next;
-      setRoute(next);
-      window.scrollTo({ top: 0, behavior: "instant" });
-      requestAnimationFrame(() =>
-        document.getElementById("main")?.focus({ preventScroll: true }),
-      );
+        !dirty.current || e.defaultPrevented || e.button !== 0 ||
+        e.metaKey || e.ctrlKey || e.shiftKey || e.altKey
+      ) return;
+      const link = e.target instanceof Element ? e.target.closest("a") : null;
+      if (
+        !link || !link.href || link.hasAttribute("download") ||
+        (link.target && link.target !== "_self") ||
+        link.getAttribute("href")?.startsWith("#")
+      ) return;
+      if (!window.confirm("Има незапазени промени. Да напусна без запазване?"))
+        e.preventDefault();
+      else dirty.current = false;
     };
     const unload = (e: BeforeUnloadEvent) => {
       if (dirty.current) {
@@ -60,10 +58,10 @@ export default function App() {
         e.returnValue = "";
       }
     };
-    addEventListener("hashchange", change);
+    addEventListener("click", followLink);
     addEventListener("beforeunload", unload);
     return () => {
-      removeEventListener("hashchange", change);
+      removeEventListener("click", followLink);
       removeEventListener("beforeunload", unload);
     };
   }, []);
@@ -156,7 +154,7 @@ export default function App() {
         ) : (
           <main id="main" tabIndex={-1} className="narrow-page">
             <h2>Записът не е намерен.</h2>
-            <a href="#/admin">Към твоите дни →</a>
+            <a href={routeHref("/admin")}>Към твоите дни →</a>
           </main>
         );
     }
@@ -182,7 +180,7 @@ export default function App() {
         </p>
         <a
           className="button secondary"
-          href={entries.length ? "#/" : "#/about"}
+          href={routeHref(entries.length ? "/" : "/about")}
         >
           {entries.length ? "Към последния ден" : "За този дневник"}
         </a>
@@ -209,7 +207,7 @@ export default function App() {
             обикновени думи. И за всичко, което ми минава през главата, докато
             се връщам в ритъм.
           </p>
-          <a className="button" href="#/">
+          <a className="button" href={routeHref("/")}>
             Разгледай дневника →
           </a>
           {analyticsCode && (
@@ -231,7 +229,7 @@ export default function App() {
     content = (
       <main id="main" tabIndex={-1} className="narrow-page">
         <h2>Тази страница не съществува.</h2>
-        <a href="#/">Към дневника →</a>
+        <a href={routeHref("/")}>Към дневника →</a>
       </main>
     );
   return (
@@ -258,13 +256,13 @@ export default function App() {
       />
       {content}
       <footer className="footer">
-        <a className="footer-brand" href="#/">
+        <a className="footer-brand" href={routeHref("/")}>
           Личен ритъм
         </a>
         <span>Ден след ден.</span>
         <div>
           {supabase && (
-            <a href="#/admin">
+            <a href={routeHref("/admin")}>
               {journal.owner ? "Личен редактор" : "Личен вход"}
             </a>
           )}

@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { supabase } from "./cloud";
+import { routeHref } from "./navigation";
 type Counter = {
   no_onload?: boolean;
   count?: (args: { path: string; title: string }) => void;
@@ -43,7 +44,7 @@ export function useAnalytics(route: string, enabled: boolean) {
       .then(() => {
         if (active)
           window.goatcounter?.count?.({
-            path: `${location.pathname}#${route}`,
+            path: routeHref(route),
             title: "Личен ритъм — дневник",
           });
       })
