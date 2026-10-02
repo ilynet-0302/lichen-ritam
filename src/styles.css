@@ -617,9 +617,8 @@ select {
 .editor-page,
 .comparison-page,
 .about-page {
+  /* The shared gutter already centers and limits the content on wide screens. */
   padding: 2.625rem var(--gutter) 4.375rem;
-  max-width: 105rem;
-  margin: auto;
 }
 .workspace-actions {
   display: flex;
@@ -1109,7 +1108,7 @@ fieldset {
 .about-page {
   display: grid;
   grid-template-columns: 1.15fr 0.75fr;
-  gap: 9vw;
+  gap: min(9vw, 9rem);
   padding-top: 3.75rem;
 }
 .about-page > div > p {
