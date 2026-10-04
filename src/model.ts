@@ -1,6 +1,8 @@
 export type Section = { id: string; heading: string; body: string };
+export type EntryKind = "journal" | "article";
 export type Entry = {
   id: string;
+  kind?: EntryKind;
   date: string;
   title: string;
   training: boolean;
@@ -20,6 +22,26 @@ export type Settings = {
   baseline_photo: string | null;
 };
 export type JournalData = { entries: Entry[]; settings: Settings };
+
+// Entries saved before articles were introduced remain ordinary journal days.
+export const isArticle = (entry: Entry) => entry.kind === "article";
+export const articlePhotos = (entry: Entry) =>
+  [...new Set([entry.before_photo, entry.after_photo, ...(entry.extra_photos ?? [])]
+    .filter((path): path is string => Boolean(path)))];
+export function entrySections(kind: EntryKind): Section[] {
+  return (kind === "article" ? [""] : ["Преди да тръгна", "Между сериите", "След тренировката"])
+    .map((heading) => ({ id: crypto.randomUUID(), heading, body: "" }));
+}
+export function changeEntryKind(entry: Entry, kind: EntryKind): Entry {
+  const currentKind = isArticle(entry) ? "article" : "journal";
+  if (kind === currentKind) return entry;
+  const defaults = entrySections(currentKind);
+  const untouched = entry.sections.length === defaults.length &&
+    entry.sections.every((section, index) =>
+      !section.body.trim() && section.heading === defaults[index].heading);
+  // Keep all authored text, photos and day details when changing presentation.
+  return { ...entry, kind, sections: untouched ? entrySections(kind) : entry.sections };
+}
 
 export const today = () => {
   const d = new Date();
@@ -47,17 +69,16 @@ export const publishedEntries = (entries: Entry[]) =>
   entries
     .filter((e) => e.status === "published")
     .sort((a, b) => a.date.localeCompare(b.date));
-export function newEntry(): Entry {
+export function newEntry(kind: EntryKind = "journal"): Entry {
   return {
     id: crypto.randomUUID(),
+    kind,
     date: today(),
     title: "",
-    training: true,
+    training: kind === "journal",
     training_note: "",
     food: "",
-    sections: ["Преди да тръгна", "Между сериите", "След тренировката"].map(
-      (heading) => ({ id: crypto.randomUUID(), heading, body: "" }),
-    ),
+    sections: entrySections(kind),
     before_photo: null,
     after_photo: null,
     extra_photos: [],
@@ -75,12 +96,12 @@ export function validateEntry(
     return "Датата е преди началото на дневника. Промени датата или началото в настройките.";
   if (entries.some((e) => e.id !== entry.id && e.date === entry.date))
     return "Вече има запис за тази дата. Отвори него или избери друга дата.";
-  if (!entry.title.trim()) return "Дай заглавие на деня.";
+  if (!entry.title.trim()) return isArticle(entry) ? "Дай заглавие на статията." : "Дай заглавие на деня.";
   if (entry.title.length > 180) return "Съкрати заглавието до 180 знака.";
   if (
     entry.status === "published" &&
     !entry.sections.some((s) => s.body.trim())
   )
-    return "Добави поне малко текст, преди да публикуваш деня.";
+    return "Добави поне малко текст, преди да публикуваш записа.";
   return null;
 }

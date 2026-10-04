@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { dayNumber, formatDate } from "./model";
+import { articlePhotos, dayNumber, formatDate, isArticle } from "./model";
 import type { Entry, JournalData } from "./model";
 import { DayGallery } from "./Gallery";
 import { routeHref } from "./navigation";
@@ -131,7 +131,16 @@ export function Header({
           ПО-СИЛЕН УТРЕ.
         </p>
       </div>
-      {entry && start ? (
+      {entry && start && isArticle(entry) ? (
+        <div className="article-header">
+          <h1>{entry.title}</h1>
+          <p className="article-meta">
+            <span>Статия</span>
+            <time dateTime={entry.date}>{formatDate(entry.date)} {entry.date.slice(0, 4)}</time>
+            <span>Ден {String(dayNumber(entry.date, start)).padStart(2, "0")}</span>
+          </p>
+        </div>
+      ) : entry && start ? (
         <div className="day-header">
           <div className="day-identity">
             <span
@@ -174,6 +183,26 @@ export function Journal({
   const index = entries.findIndex((e) => e.id === entry.id);
   const stripStart = Math.max(0, Math.min(index - 6, entries.length - 8));
   const visible = entries.slice(stripStart, stripStart + 8);
+  if (isArticle(entry)) {
+    const photos = articlePhotos(entry);
+    return (
+      <main id="main" tabIndex={-1} className="article-page" key={entry.id}>
+        <article className="day-story article-story" aria-label={entry.title}>
+          {photos.length > 0 && <div className="article-cover">
+            <Photo src={urls[photos[0]]} alt={`Снимка към „${entry.title}“`} priority />
+          </div>}
+          {entry.sections.filter((s) => s.body.trim()).map((s) => (
+            <section key={s.id}>
+              {s.heading && <h2>{s.heading}</h2>}
+              <p>{s.body}</p>
+            </section>
+          ))}
+          <DayGallery paths={photos.slice(1)} urls={urls} date={entry.date} title="Още снимки към статията" />
+        </article>
+        <EntryPagination entries={entries} index={index} />
+      </main>
+    );
+  }
   return (
     <main id="main" tabIndex={-1} className="spread" key={entry.id}>
       <aside className="day-evidence">
@@ -250,6 +279,13 @@ export function Journal({
             </section>
           ))}
       </article>
+      <EntryPagination entries={entries} index={index} />
+    </main>
+  );
+}
+
+function EntryPagination({ entries, index }: { entries: Entry[]; index: number }) {
+  return (
       <nav className="entry-pagination" aria-label="Предишен и следващ запис">
         {index > 0 ? (
           <a href={routeHref(`/journal/${entries[index - 1].date}`)}>
@@ -260,7 +296,7 @@ export function Journal({
         )}
         <details>
           <summary>
-            Всички дни <span>({entries.length})</span>
+            Всички записи <span>({entries.length})</span>
           </summary>
           <ol>
             {entries.map((e) => (
@@ -269,7 +305,7 @@ export function Journal({
                   <time>
                     {formatDate(e.date)} {e.date.slice(0, 4)}
                   </time>
-                  <span>{e.title}</span>
+                  <span>{e.title}{isArticle(e) && <small className="entry-type-label">Статия</small>}</span>
                 </a>
               </li>
             ))}
@@ -283,6 +319,5 @@ export function Journal({
           <span>Последният запис</span>
         )}
       </nav>
-    </main>
   );
 }

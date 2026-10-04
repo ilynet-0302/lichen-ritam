@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Entry, JournalData } from "./model";
-import { dayNumber, formatDate } from "./model";
+import { dayNumber, formatDate, isArticle } from "./model";
 import { Photo } from "./components";
 import { routeHref } from "./navigation";
 
@@ -15,7 +15,7 @@ export default function Comparison({
   urls: Record<string, string>;
   date?: string;
 }) {
-  const choices = entries.filter((e) => e.before_photo || e.after_photo);
+  const choices = entries.filter((e) => !isArticle(e) && (e.before_photo || e.after_photo));
   const [selected, setSelected] = useState(date ?? choices.at(-1)?.date ?? "");
   const [moment, setMoment] = useState<"before_photo" | "after_photo">(
     "before_photo",

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import type { Entry, JournalData, Settings } from "./model";
-import { formatDate, newEntry, validDate, validateEntry } from "./model";
+import { changeEntryKind, formatDate, isArticle, newEntry, validDate, validateEntry } from "./model";
 import {
   blobDataUrl,
   discardUploads,
@@ -180,7 +180,7 @@ export function AdminList({
       </div>
       {error && <Notice error>{error}</Notice>}
       <h2>
-        Твоите дни <span className="subtle">({data.entries.length})</span>
+        Твоите записи <span className="subtle">({data.entries.length})</span>
       </h2>
       {data.entries.length ? (
         <ul className="entry-list">
@@ -191,7 +191,7 @@ export function AdminList({
                   {formatDate(e.date)}
                   <small>{e.date.slice(0, 4)}</small>
                 </time>
-                <strong>{e.title}</strong>
+                <div><strong>{e.title}</strong><small>{isArticle(e) ? "Статия" : "Дневник"}</small></div>
                 <span className={`entry-status ${e.status}`}>
                   {e.status === "draft" ? "Чернова" : "Публикуван"}
                 </span>
@@ -229,6 +229,7 @@ export function EntryEditor({
   const [entry, setEntry] = useState<Entry>(() =>
     structuredClone(initial ?? newEntry()),
   );
+  const article = isArticle(entry);
   const [before, setBefore] = useState<PhotoChange>();
   const [after, setAfter] = useState<PhotoChange>();
   const [extraPhotos, setExtraPhotos] = useState<ExtraPhotoDraft[]>(() =>
@@ -308,7 +309,7 @@ export function EntryEditor({
       markDirty(false);
       setMessage(
         status === "published"
-          ? "Денят е публикуван."
+          ? article ? "Статията е публикувана." : "Денят е публикуван."
           : "Черновата е запазена.",
       );
       if (!initial) navigate(`/admin/${final.id}`);
@@ -341,8 +342,80 @@ export function EntryEditor({
       setBusy(false);
     }
   }
+  const media = (
+    <div className="editor-media">
+      {(!article || entry.before_photo || entry.after_photo || before || after) && <>
+      {article && <p className="field-help">Снимките от дневника са запазени. Ще се виждат и в статията.</p>}
+      <div className="editor-photos">
+        <PhotoField
+          label={article ? "Първа запазена снимка" : "Преди тренировка"}
+          src={
+            before === undefined
+              ? urls[entry.before_photo ?? ""]
+              : before?.preview
+          }
+          onChange={(p) => {
+            setBefore(p);
+            changed();
+          }}
+          onBusy={onPhotoBusy}
+        />
+        <PhotoField
+          label={article ? "Втора запазена снимка" : "След тренировка"}
+          src={
+            after === undefined
+              ? urls[entry.after_photo ?? ""]
+              : after?.preview
+          }
+          onChange={(p) => {
+            setAfter(p);
+            changed();
+          }}
+          onBusy={onPhotoBusy}
+        />
+      </div>
+      </>}
+      <p className="small-print">
+        JPG, PNG или WebP · до 20 MB. Снимките се намаляват автоматично
+        преди качване.
+      </p>
+      <ExtraPhotoEditor
+        article={article}
+        photos={extraPhotos}
+        urls={urls}
+        onChange={(photos) => {
+          setExtraPhotos(photos);
+          changed();
+        }}
+        onBusy={(value) => {
+          onPhotoBusy(value);
+          if (value) changed();
+        }}
+      />
+      {!article && <>
+      <label>
+        {entry.training ? "Какво тренирах" : "Как си починах"}
+        <textarea
+          rows={3}
+          value={entry.training_note}
+          onChange={(e) => patch({ training_note: e.target.value })}
+          placeholder="Упражнения, време, усещане…"
+        />
+      </label>
+      <label>
+        Какво ядох
+        <textarea
+          rows={4}
+          value={entry.food}
+          onChange={(e) => patch({ food: e.target.value })}
+          placeholder="Количество с твои думи: две яйца, купа ориз…"
+        />
+      </label>
+      </>}
+    </div>
+  );
   return (
-    <main id="main" tabIndex={-1} className="editor-page">
+    <main id="main" tabIndex={-1} className={`editor-page${article ? " article-editor" : ""}`}>
       <div className="editor-topline">
         <a href={routeHref("/admin")}>← Всички записи</a>
         <span>
@@ -360,6 +433,28 @@ export function EntryEditor({
         }}
       >
         <fieldset disabled={busy}>
+          <fieldset className="entry-kind" aria-describedby="entry-kind-help" disabled={photoBusy > 0}>
+            <legend>Какво ще споделиш?</legend>
+            <div className="entry-kind-options">
+              {(["journal", "article"] as const).map((kind) => (
+                <label key={kind}>
+                  <input
+                    type="radio"
+                    name="entry-kind"
+                    value={kind}
+                    checked={(article ? "article" : "journal") === kind}
+                    onChange={() => { setEntry((value) => changeEntryKind(value, kind)); changed(); }}
+                  />
+                  <span>{kind === "article" ? "Статия" : "Дневник"}</span>
+                </label>
+              ))}
+            </div>
+            <p className="field-help" id="entry-kind-help">
+              {article
+                ? "Място за една тема, личен опит или мисъл. Появява се в дневника на избраната дата."
+                : "Тренировката, почивката, храната и мислите от деня."}
+            </p>
+          </fieldset>
           <div className="editor-meta">
             <label>
               Дата
@@ -371,92 +466,29 @@ export function EntryEditor({
                 onChange={(e) => patch({ date: e.target.value })}
               />
             </label>
-            <label className="check-label">
+            {!article && <label className="check-label">
               <input
                 type="checkbox"
                 checked={entry.training}
                 onChange={(e) => patch({ training: e.target.checked })}
               />
               Тренирах днес
-            </label>
+            </label>}
           </div>
           <label className="title-field">
-            Заглавие на деня
+            {article ? "Заглавие на статията" : "Заглавие на деня"}
             <input
               maxLength={180}
               required
-              placeholder="Как би запомнил този ден?"
+              placeholder={article ? "За какво искаш да разкажеш?" : "Как би запомнил този ден?"}
               value={entry.title}
               onChange={(e) => patch({ title: e.target.value })}
             />
           </label>
           <div className="editor-columns">
-            <div>
-              <div className="editor-photos">
-                <PhotoField
-                  label="Преди тренировка"
-                  src={
-                    before === undefined
-                      ? urls[entry.before_photo ?? ""]
-                      : before?.preview
-                  }
-                  onChange={(p) => {
-                    setBefore(p);
-                    changed();
-                  }}
-                  onBusy={onPhotoBusy}
-                />
-                <PhotoField
-                  label="След тренировка"
-                  src={
-                    after === undefined
-                      ? urls[entry.after_photo ?? ""]
-                      : after?.preview
-                  }
-                  onChange={(p) => {
-                    setAfter(p);
-                    changed();
-                  }}
-                  onBusy={onPhotoBusy}
-                />
-              </div>
-              <p className="small-print">
-                JPG, PNG или WebP · до 20 MB. Снимките се намаляват автоматично
-                преди качване.
-              </p>
-              <ExtraPhotoEditor
-                photos={extraPhotos}
-                urls={urls}
-                onChange={(photos) => {
-                  setExtraPhotos(photos);
-                  changed();
-                }}
-                onBusy={(value) => {
-                  onPhotoBusy(value);
-                  if (value) changed();
-                }}
-              />
-              <label>
-                {entry.training ? "Какво тренирах" : "Как си починах"}
-                <textarea
-                  rows={3}
-                  value={entry.training_note}
-                  onChange={(e) => patch({ training_note: e.target.value })}
-                  placeholder="Упражнения, време, усещане…"
-                />
-              </label>
-              <label>
-                Какво ядох
-                <textarea
-                  rows={4}
-                  value={entry.food}
-                  onChange={(e) => patch({ food: e.target.value })}
-                  placeholder="Количество с твои думи: две яйца, купа ориз…"
-                />
-              </label>
-            </div>
+            {!article && media}
             <div className="writing-sections">
-              <h2>Мислите от деня</h2>
+              <h2>{article ? "Текстът на статията" : "Мислите от деня"}</h2>
               <p className="field-help">
                 Пиши свободно. Можеш да променяш заглавията и да добавяш още
                 части.
@@ -493,7 +525,7 @@ export function EntryEditor({
                           ),
                         })
                       }
-                      placeholder="Какво ми беше в главата…"
+                      placeholder={article ? "Започни с това, което искаш да споделиш…" : "Какво ми беше в главата…"}
                     />
                   </label>
                   <button
@@ -527,9 +559,10 @@ export function EntryEditor({
                   })
                 }
               >
-                Добави още мисли +
+                {article ? "Добави още част +" : "Добави още мисли +"}
               </button>
             </div>
+            {article && media}
           </div>
         </fieldset>
         {error && <Notice error>{error}</Notice>}
@@ -558,7 +591,7 @@ export function EntryEditor({
                 ? "Запазване…"
                 : entry.status === "published"
                   ? "Запази и публикувай"
-                  : "Публикувай деня"}
+                  : article ? "Публикувай статията" : "Публикувай деня"}
             </button>
           </div>
           {initial?.status === "published" && (

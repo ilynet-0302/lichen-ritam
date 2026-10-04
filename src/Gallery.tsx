@@ -15,11 +15,13 @@ export function ExtraPhotoEditor({
   urls,
   onChange,
   onBusy,
+  article = false,
 }: {
   photos: ExtraPhotoDraft[];
   urls: Record<string, string>;
   onChange: (photos: ExtraPhotoDraft[]) => void;
   onBusy: (busy: boolean) => void;
+  article?: boolean;
 }) {
   const input = useRef<HTMLInputElement>(null);
   const [progress, setProgress] = useState("");
@@ -61,10 +63,11 @@ export function ExtraPhotoEditor({
       className="extra-photo-editor"
       aria-labelledby="extra-photo-heading"
     >
-      <h3 id="extra-photo-heading">Още от деня</h3>
+      <h3 id="extra-photo-heading">{article ? "Снимки към статията" : "Още от деня"}</h3>
       <p className="field-help">
-        По желание: други ъгли, храната или момент от деня. Можеш да избереш
-        няколко снимки наведнъж.
+        {article
+          ? "По желание. Първата снимка отваря статията. Можеш да избереш няколко наведнъж."
+          : "По желание: други ъгли, храната или момент от деня. Можеш да избереш няколко снимки наведнъж."}
       </p>
       {photos.length > 0 && (
         <ol className="extra-photo-list">
@@ -96,7 +99,7 @@ export function ExtraPhotoEditor({
           type="file"
           multiple
           accept="image/jpeg,image/png,image/webp"
-          aria-label="Допълнителни снимки за деня"
+          aria-label={article ? "Снимки към статията" : "Допълнителни снимки за деня"}
           disabled={Boolean(progress)}
           onChange={(e) => void select(Array.from(e.target.files ?? []))}
         />
@@ -115,10 +118,12 @@ export function DayGallery({
   paths,
   urls,
   date,
+  title = "Още от деня",
 }: {
   paths: string[];
   urls: Record<string, string>;
   date: string;
+  title?: string;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [selected, setSelected] = useState<number | null>(null);
@@ -130,9 +135,9 @@ export function DayGallery({
     );
 
   return (
-    <section className="day-gallery" aria-label="Още снимки от деня">
+    <section className="day-gallery" aria-label={title}>
       <div className="gallery-heading">
-        <h2>Още от деня</h2>
+        <h2>{title}</h2>
         <span>
           {paths.length} {paths.length === 1 ? "снимка" : "снимки"}
         </span>
@@ -169,7 +174,7 @@ export function DayGallery({
         }}
       >
         <div className="gallery-viewer-top">
-          <p>Още от деня · {formatDate(date)}</p>
+          <p>{title} · {formatDate(date)}</p>
           <button
             type="button"
             className="button secondary"

@@ -78,7 +78,7 @@ export default function App() {
           : path.startsWith("/admin")
             ? path === "/admin"
               ? "Думите зад снимките."
-              : "Още един ден. Твоите думи."
+              : "Твоето място за писане."
             : undefined;
   let content;
   if (!supabase)
