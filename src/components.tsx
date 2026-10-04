@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import type { ReactNode } from "react";
 import { articlePhotos, dayNumber, formatDate, isArticle } from "./model";
 import type { Entry, JournalData } from "./model";
@@ -187,6 +187,7 @@ export function Journal({
     const photos = articlePhotos(entry);
     return (
       <main id="main" tabIndex={-1} className="article-page" key={entry.id}>
+        <EntryPagination entries={entries} index={index} position="top" />
         <article className="day-story article-story" aria-label={entry.title}>
           {photos.length > 0 && <div className="article-cover">
             <Photo src={urls[photos[0]]} alt={`Снимка към „${entry.title}“`} priority />
@@ -284,40 +285,93 @@ export function Journal({
   );
 }
 
-function EntryPagination({ entries, index }: { entries: Entry[]; index: number }) {
+function NavigationIcon({ direction }: { direction: "previous" | "next" | "archive" }) {
   return (
-      <nav className="entry-pagination" aria-label="Предишен и следващ запис">
-        {index > 0 ? (
-          <a href={routeHref(`/journal/${entries[index - 1].date}`)}>
-            ← {formatDate(entries[index - 1].date)}
-          </a>
-        ) : (
-          <span>Началото на дневника</span>
-        )}
-        <details>
-          <summary>
-            Всички записи <span>({entries.length})</span>
-          </summary>
-          <ol>
-            {entries.map((e) => (
-              <li key={e.id}>
-                <a href={routeHref(`/journal/${e.date}`)}>
-                  <time>
-                    {formatDate(e.date)} {e.date.slice(0, 4)}
-                  </time>
-                  <span>{e.title}{isArticle(e) && <small className="entry-type-label">Статия</small>}</span>
-                </a>
-              </li>
-            ))}
-          </ol>
-        </details>
-        {index < entries.length - 1 ? (
-          <a href={routeHref(`/journal/${entries[index + 1].date}`)}>
-            {formatDate(entries[index + 1].date)} →
-          </a>
-        ) : (
-          <span>Последният запис</span>
-        )}
-      </nav>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {direction === "archive" ? (
+        <path d="m6 9 6 6 6-6" />
+      ) : direction === "previous" ? (
+        <path d="M20 12H4m6-6-6 6 6 6" />
+      ) : (
+        <path d="M4 12h16m-6-6 6 6-6 6" />
+      )}
+    </svg>
+  );
+}
+
+function EntryPagination({
+  entries,
+  index,
+  position = "bottom",
+}: {
+  entries: Entry[];
+  index: number;
+  position?: "top" | "bottom";
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const archiveId = useId();
+  const previous = entries[index - 1];
+  const next = entries[index + 1];
+
+  function adjacent(entry: Entry | undefined, direction: "previous" | "next") {
+    const label = direction === "previous" ? "Предишен" : "Следващ";
+    const content = (
+      <>
+        <NavigationIcon direction={direction} />
+        <span className="entry-nav-copy">
+          <span className="entry-nav-label">{label}</span>
+          {entry ? (
+            <time dateTime={entry.date}>{formatDate(entry.date)}</time>
+          ) : (
+            <span className="entry-nav-boundary">
+              {direction === "previous" ? "Началото на дневника" : "Последният запис"}
+            </span>
+          )}
+        </span>
+      </>
+    );
+    return entry ? (
+      <a
+        className={`entry-nav-control entry-nav-${direction}`}
+        href={routeHref(`/journal/${entry.date}`)}
+        rel={direction === "previous" ? "prev" : "next"}
+        aria-label={`${label} запис: ${formatDate(entry.date)} ${entry.date.slice(0, 4)} — ${entry.title}`}
+      >
+        {content}
+      </a>
+    ) : (
+      <span className={`entry-nav-control entry-nav-${direction} entry-nav-unavailable`}>
+        {content}
+      </span>
+    );
+  }
+
+  return (
+    <nav className={`entry-pagination entry-pagination-${position}`} aria-label={`Навигация между записи — ${position === "top" ? "начало" : "край"}`}>
+      {adjacent(previous, "previous")}
+      {adjacent(next, "next")}
+      <button
+        type="button"
+        className="entry-nav-control entry-nav-archive"
+        aria-expanded={expanded}
+        aria-controls={archiveId}
+        onClick={() => setExpanded(!expanded)}
+      >
+        <span>Всички записи</span>
+        <span className="entry-nav-count">{entries.length}</span>
+        <NavigationIcon direction="archive" />
+      </button>
+      <ol id={archiveId} className="entry-nav-list" hidden={!expanded}>
+        {entries.map((e, entryIndex) => (
+          <li key={e.id}>
+            <a href={routeHref(`/journal/${e.date}`)} aria-current={entryIndex === index ? "page" : undefined}>
+              <time dateTime={e.date}>{formatDate(e.date)} {e.date.slice(0, 4)}</time>
+              <span className="entry-nav-title">{e.title}<small className="entry-type-label">{isArticle(e) ? "Статия" : "Дневник"}{entryIndex === index && " · Четеш сега"}</small></span>
+              <NavigationIcon direction="next" />
+            </a>
+          </li>
+        ))}
+      </ol>
+    </nav>
   );
 }
