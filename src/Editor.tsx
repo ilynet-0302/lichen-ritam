@@ -14,6 +14,7 @@ import { Notice, Photo } from "./components";
 import { ExtraPhotoEditor } from "./Gallery";
 import type { ExtraPhotoDraft } from "./Gallery";
 import { navigate, routeHref } from "./navigation";
+import { WritingField } from "./WritingField";
 
 export type PhotoChange = { blob: Blob; preview: string } | null;
 function PhotoField({
@@ -511,23 +512,20 @@ export function EntryEditor({
                       }
                     />
                   </label>
-                  <label>
-                    Текст на част {index + 1}
-                    <textarea
-                      rows={7}
+                  <WritingField
+                      index={index}
+                      article={article}
                       value={section.body}
-                      onChange={(e) =>
+                      onChange={(body) =>
                         patch({
                           sections: entry.sections.map((s) =>
                             s.id === section.id
-                              ? { ...s, body: e.target.value }
+                              ? { ...s, body }
                               : s,
                           ),
                         })
                       }
-                      placeholder={article ? "Започни с това, което искаш да споделиш…" : "Какво ми беше в главата…"}
                     />
-                  </label>
                   <button
                     type="button"
                     className="text-button"

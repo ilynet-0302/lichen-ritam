@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from "react";
 import { Header, Journal, Notice, Photo } from "./components";
 import { AdminList, EntryEditor, Login, SettingsEditor } from "./Editor";
 import Comparison from "./Comparison";
+import Archive from "./Archive";
 import { supabase } from "./cloud";
 import { analyticsCode, useAnalytics } from "./analytics";
 import { publishedEntries, formatDate } from "./model";
@@ -33,7 +34,7 @@ export default function App() {
       !journal.owner &&
       !journal.loading &&
       !journal.error &&
-      (publicRoute || path === "/compare" || path === "/about"),
+      (publicRoute || path === "/archive" || path === "/compare" || path === "/about"),
   );
 
   useEffect(() => {
@@ -66,19 +67,21 @@ export default function App() {
     };
   }, []);
   useEffect(() => {
-    document.title = `${publicRoute && entry ? entry.title : path === "/compare" ? "Сравнение" : path === "/about" ? "За проекта" : path.startsWith("/admin") ? "Личен редактор" : "Дневник"} · Личен ритъм`;
+    document.title = `${publicRoute && entry ? entry.title : path === "/archive" ? "Всички записи" : path === "/compare" ? "Сравнение на снимки" : path === "/about" ? "За проекта" : path === "/settings" ? "Настройки" : path.startsWith("/admin") ? "Личен редактор" : "Дневник"} · Личен ритъм`;
   }, [path, entry, publicRoute]);
   const pageTitle =
-    path === "/compare"
-      ? "Виж откъде започна."
+    path === "/archive"
+      ? "Всички записи."
+      : path === "/compare"
+      ? "Сравнение на снимки."
       : path === "/about"
-        ? "Една лична история."
+        ? "За проекта."
         : path === "/settings"
-          ? "Оттук започва всичко."
+          ? "Настройки на дневника."
           : path.startsWith("/admin")
             ? path === "/admin"
-              ? "Думите зад снимките."
-              : "Твоето място за писане."
+              ? "Личен редактор."
+              : "Редактиране на запис."
             : undefined;
   let content;
   if (!supabase)
@@ -158,6 +161,8 @@ export default function App() {
           </main>
         );
     }
+  } else if (path === "/archive") {
+    content = <Archive entries={entries} filter={query.get("type") ?? undefined} />;
   } else if (publicRoute) {
     content = entry ? (
       <Journal
@@ -189,11 +194,12 @@ export default function App() {
   } else if (path === "/compare")
     content = (
       <Comparison
-        key={route}
         data={journal.data}
         entries={entries}
         urls={urls}
         date={query.get("date") ?? undefined}
+        initialMoment={query.get("moment") ?? undefined}
+        initialView={query.get("view") ?? undefined}
       />
     );
   else if (path === "/about")
@@ -251,8 +257,7 @@ export default function App() {
           publicRoute && !journal.loading && !journal.error ? entry : undefined
         }
         start={journal.data?.settings.start_date}
-        title={journal.data && !journal.error ? pageTitle : undefined}
-        available={Boolean(journal.data) && !journal.error}
+        title={pageTitle}
       />
       {content}
       <footer className="footer">

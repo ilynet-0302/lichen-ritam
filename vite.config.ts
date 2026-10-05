@@ -14,7 +14,7 @@ function staticRoutes(): Plugin {
       if (!home) throw new Error("The website canonical URL is missing.");
       // Real entry files return HTTP 200 on Pages, including direct visits
       // and link-preview crawlers that do not execute JavaScript.
-      for (const page of ["about", "compare", "journal", "admin", "admin/new", "settings"]) {
+      for (const page of ["about", "archive", "compare", "journal", "admin", "admin/new", "settings"]) {
         const url = new URL(`${page}/`, home).href;
         let source = html
           .replace(`rel="canonical" href="${home}"`, `rel="canonical" href="${url}"`)

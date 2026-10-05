@@ -4,6 +4,7 @@ import { articlePhotos, dayNumber, formatDate, isArticle } from "./model";
 import type { Entry, JournalData } from "./model";
 import { DayGallery } from "./Gallery";
 import { routeHref } from "./navigation";
+import { ReadingText, readingMinutes } from "./ReadingText";
 
 export function Icon({ food = false }: { food?: boolean }) {
   return (
@@ -82,16 +83,15 @@ export function Header({
   entry,
   start,
   title,
-  available = true,
 }: {
   route: string;
   entry?: Entry;
   start?: string;
   title?: string;
-  available?: boolean;
 }) {
   return (
-    <header className={`masthead${available ? "" : " masthead-unavailable"}`}>
+    <>
+    <header className="site-header">
       <div className="topbar">
         <a className="wordmark" href={routeHref("/")}>
           Личен ритъм
@@ -101,21 +101,20 @@ export function Header({
           <br />
           СВОБОДА.
         </p>
-        {available && (
-          <nav aria-label="Основна навигация">
+        <nav aria-label="Основна навигация">
             {[
-              ["/", "Дневник"],
+              ["/archive", "Всички записи"],
               ["/compare", "Сравнение"],
               ["/about", "За проекта"],
             ].map(([path, label]) => {
               const active =
-                path === "/"
-                  ? route === "/" || route.startsWith("/journal")
+                path === "/archive"
+                  ? route === "/archive" || route === "/" || route.startsWith("/journal")
                   : route === path;
               return (
                 <a
                   className={active ? "active" : ""}
-                  aria-current={active ? "page" : undefined}
+                  aria-current={active ? (route === path ? "page" : "true") : undefined}
                   key={path}
                   href={routeHref(`${path}`)}
                 >
@@ -123,21 +122,27 @@ export function Header({
                 </a>
               );
             })}
-          </nav>
-        )}
+        </nav>
         <p className="tagline">
           СЪЩИЯТ ЧОВЕК.
           <br />
           ПО-СИЛЕН УТРЕ.
         </p>
       </div>
+    </header>
+    <div className="masthead">
+      {entry && <nav className={`page-location${isArticle(entry) ? " article-location" : ""}`} aria-label="Местоположение">
+        <a href={routeHref("/archive")}>Всички записи</a>
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">{isArticle(entry) ? "Статия" : "Дневник"}</span>
+      </nav>}
       {entry && start && isArticle(entry) ? (
         <div className="article-header">
-          <h1>{entry.title}</h1>
+          <h1 id="entry-title" tabIndex={-1}>{entry.title}</h1>
           <p className="article-meta">
             <span>Статия</span>
             <time dateTime={entry.date}>{formatDate(entry.date)} {entry.date.slice(0, 4)}</time>
-            <span>Ден {String(dayNumber(entry.date, start)).padStart(2, "0")}</span>
+            <span>Около {readingMinutes(entry.sections)} мин четене</span>
           </p>
         </div>
       ) : entry && start ? (
@@ -157,7 +162,7 @@ export function Header({
               <span className="weekday">{formatDate(entry.date, true)}</span>
             </div>
           </div>
-          <h1 className={entry.title.length > 60 ? "long-title" : ""}>
+          <h1 id="entry-title" tabIndex={-1} className={entry.title.length > 60 ? "long-title" : ""}>
             {entry.title}
           </h1>
         </div>
@@ -166,7 +171,8 @@ export function Header({
           <h1>{title || "Всеки ден е част от историята."}</h1>
         </div>
       )}
-    </header>
+    </div>
+    </>
   );
 }
 export function Journal({
@@ -185,6 +191,8 @@ export function Journal({
   const visible = entries.slice(stripStart, stripStart + 8);
   if (isArticle(entry)) {
     const photos = articlePhotos(entry);
+    const sections = entry.sections.filter((section) => section.body.trim());
+    const headings = sections.filter((section) => section.heading.trim());
     return (
       <main id="main" tabIndex={-1} className="article-page" key={entry.id}>
         <EntryPagination entries={entries} index={index} position="top" />
@@ -192,13 +200,20 @@ export function Journal({
           {photos.length > 0 && <div className="article-cover">
             <Photo src={urls[photos[0]]} alt={`Снимка към „${entry.title}“`} priority />
           </div>}
-          {entry.sections.filter((s) => s.body.trim()).map((s) => (
-            <section key={s.id}>
+          {headings.length > 2 && <details className="article-contents">
+            <summary>В тази статия <span>{headings.length} части</span></summary>
+            <nav aria-label="Съдържание на статията"><ol>
+              {headings.map((section) => <li key={section.id}><a href={`#section-${section.id}`}>{section.heading}</a></li>)}
+            </ol></nav>
+          </details>}
+          {sections.map((s) => (
+            <section key={s.id} id={`section-${s.id}`} tabIndex={-1}>
               {s.heading && <h2>{s.heading}</h2>}
-              <p>{s.body}</p>
+              <ReadingText text={s.body} article />
             </section>
           ))}
           <DayGallery paths={photos.slice(1)} urls={urls} date={entry.date} title="Още снимки към статията" />
+          <a className="back-to-article" href="#entry-title">Към началото на статията ↑</a>
         </article>
         <EntryPagination entries={entries} index={index} />
       </main>
@@ -206,6 +221,7 @@ export function Journal({
   }
   return (
     <main id="main" tabIndex={-1} className="spread" key={entry.id}>
+      <EntryPagination entries={entries} index={index} position="top" />
       <aside className="day-evidence">
         <div className="photographs">
           <Photo
@@ -244,9 +260,9 @@ export function Journal({
               </a>
             ))}
           </nav>
-          <a className="compare-link" href={routeHref(`/compare?date=${entry.date}`)}>
+          {(entry.before_photo || entry.after_photo) && <a className="compare-link" href={routeHref(`/compare?date=${entry.date}`)}>
             Сравни с началото <span aria-hidden="true">→</span>
-          </a>
+          </a>}
         </div>
         <dl className="day-details">
           <div>
@@ -276,7 +292,7 @@ export function Journal({
           .map((s) => (
             <section key={s.id}>
               {s.heading && <h2>{s.heading}</h2>}
-              <p>{s.body}</p>
+              <ReadingText text={s.body} />
             </section>
           ))}
       </article>
@@ -321,7 +337,7 @@ function EntryPagination({
         <span className="entry-nav-copy">
           <span className="entry-nav-label">{label}</span>
           {entry ? (
-            <time dateTime={entry.date}>{formatDate(entry.date)}</time>
+            <><time dateTime={entry.date}>{formatDate(entry.date)}</time><span className="entry-nav-destination">{entry.title}</span></>
           ) : (
             <span className="entry-nav-boundary">
               {direction === "previous" ? "Началото на дневника" : "Последният запис"}
@@ -349,7 +365,6 @@ function EntryPagination({
   return (
     <nav className={`entry-pagination entry-pagination-${position}`} aria-label={`Навигация между записи — ${position === "top" ? "начало" : "край"}`}>
       {adjacent(previous, "previous")}
-      {adjacent(next, "next")}
       <button
         type="button"
         className="entry-nav-control entry-nav-archive"
@@ -361,6 +376,7 @@ function EntryPagination({
         <span className="entry-nav-count">{entries.length}</span>
         <NavigationIcon direction="archive" />
       </button>
+      {adjacent(next, "next")}
       <ol id={archiveId} className="entry-nav-list" hidden={!expanded}>
         {entries.map((e, entryIndex) => (
           <li key={e.id}>
@@ -371,6 +387,7 @@ function EntryPagination({
             </a>
           </li>
         ))}
+        <li><a className="archive-page-link" href={routeHref("/archive")}>Отвори архива с филтри <NavigationIcon direction="next" /></a></li>
       </ol>
     </nav>
   );
