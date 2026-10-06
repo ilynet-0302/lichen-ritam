@@ -2137,6 +2137,11 @@ fieldset {
 .reading-text { line-height: 1.75; overflow-wrap: anywhere; }
 .reading-text > * + * { margin-top: 1.125em; }
 .reading-text p { white-space: normal; }
+.reading-text p, .reading-text li {
+  text-align: justify;
+  text-align-last: start;
+  hyphens: auto;
+}
 .reading-text strong { font-weight: 750; }
 .reading-text a { color: var(--blue); text-decoration-thickness: 1px; }
 .reading-text ul, .reading-text ol { padding-left: 1.5em; margin-bottom: 0; }
