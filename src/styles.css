@@ -2140,7 +2140,7 @@ fieldset {
 .reading-text p, .reading-text li {
   text-align: justify;
   text-align-last: start;
-  hyphens: auto;
+  hyphens: manual;
 }
 .reading-text strong { font-weight: 750; }
 .reading-text a { color: var(--blue); text-decoration-thickness: 1px; }
